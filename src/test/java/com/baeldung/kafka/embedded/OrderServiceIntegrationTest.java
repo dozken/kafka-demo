@@ -9,6 +9,8 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.test.context.EmbeddedKafka;
 import org.springframework.test.annotation.DirtiesContext;
 
+import java.util.stream.IntStream;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -34,14 +36,52 @@ class OrderServiceIntegrationTest {
     private OrderService orderService;
 
     @Test
-    void executeOrder_SHOULD_returnAfterGettingMessageFromConsumer() throws Exception {
-        String message = "Sending with our own simple KafkaProducer";
-        producer.send("test-topic", message);
+    void executeOrder_SHOULD_returnAfterKafkaResponse() throws Exception {
+        String orderId = "order#1";
 
-        long response = orderService.executeOrder();
+        producer.send("test-topic", orderId);
+
+        String response = orderService.executeOrder(orderId);
 
         verify(consumer, times(1)).receive(any());
-        verify(orderService, times(1)).executionReport(message);
-        assertThat(response, equalTo(0L));
+        verify(orderService, times(1)).executionReport(orderId);
+        assertThat(response, equalTo(orderId));
+    }
+
+    @Test
+    void executeOrder_SHOULD_returnAfterKafkaResponse2() throws Exception {
+        String orderId = "order#1";
+
+
+        String response = orderService.executeOrder(orderId);
+
+        producer.send("test-topic", orderId);
+
+
+        verify(consumer, times(1)).receive(any());
+        verify(orderService, times(1)).executionReport(orderId);
+        assertThat(response, equalTo(orderId));
+    }
+
+    @Test
+    void executeOrder_SHOULD_returnAfterKafkaResponseWithStream() throws Exception {
+        String orderId = "order#1";
+
+
+        IntStream.range(0, 10).forEach(i -> {
+            try {
+                orderService.executeOrder("order#"+i);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        });
+
+        IntStream.range(0, 10).forEach(i -> producer.send("test-topic", "order#" + i));
+
+
+
+        verify(consumer, times(1)).receive(any());
+        verify(orderService, times(1)).executionReport(orderId);
+//        assertThat(response, equalTo(orderId));
     }
 }

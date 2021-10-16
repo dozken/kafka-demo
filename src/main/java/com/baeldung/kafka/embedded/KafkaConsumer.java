@@ -16,7 +16,12 @@ public class KafkaConsumer {
     @KafkaListener(topics = "test-topic")
     public void receive(ConsumerRecord<?, ?> consumerRecord) {
         log.info("received payload='{}'", consumerRecord.toString());
-        service.executionReport(consumerRecord.value().toString());
+        try {
+            service.executionReport(consumerRecord.value().toString());
+        } catch (Exception e) {
+
+            log.error("MyError", e);
+        }
     }
 
 }
